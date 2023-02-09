@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import * as Popover from '@radix-ui/react-popover';
 import clsx from 'clsx';
 import { SunDim, MoonStars, ArrowRight } from 'phosphor-react';
 import { stack, githubRepos } from './data';
@@ -15,8 +16,9 @@ function App() {
   const [frontendSkills, setFrontendSkills] = useState(0);
   const [backendSkills, setBackendSkills] = useState(0);
 
-  const [isDarkMode, setIsDarkMode] = useState<boolean | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState<boolean | null>(true);
   const [appThemeIsReady, setAppThemeIsReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const stackGridRef = useRef<HTMLDivElement | null>(null);
   const skillsProgressbarRef = useRef<HTMLDivElement | null>(null);
@@ -27,7 +29,8 @@ function App() {
   }
 
   useEffect(() => {
-    setStackGridShouldAppear(true);
+    const checkIfIsMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(checkIfIsMobile);
 
     const appThemeFromLocalStorage = window.localStorage.getItem('isDarkMode');
 
@@ -36,15 +39,15 @@ function App() {
       setAppThemeIsReady(true);
     }
 
-    const observer = new IntersectionObserver(entries => {
+    const skillProgressbarObserver = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
         setskillsProgressbarRefShouldAppear(true);
         
         setTimeout(() => {
           setFrontendSkills(82);
           
-          setTimeout(() => setBackendSkills(72), 700)
-        }, 600)
+          setTimeout(() => setBackendSkills(72), 700);
+        }, 600);
       }
 
       else {
@@ -55,7 +58,21 @@ function App() {
     });
 
     if (skillsProgressbarRef.current) {
-      observer.observe(skillsProgressbarRef.current);
+      skillProgressbarObserver.observe(skillsProgressbarRef.current);
+    }
+
+    const stackGridObserver = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setStackGridShouldAppear(true);
+      }
+
+      else {
+        setStackGridShouldAppear(false);
+      }
+    });
+
+    if (stackGridRef.current) {
+      stackGridObserver.observe(stackGridRef.current);
     }
 
     function showElementOnScroll() {
@@ -72,7 +89,11 @@ function App() {
 
     return () => {
       if (skillsProgressbarRef.current) {
-        observer.unobserve(skillsProgressbarRef.current);
+        skillProgressbarObserver.unobserve(skillsProgressbarRef.current);
+      }
+
+      if (stackGridRef.current) {
+        stackGridObserver.unobserve(stackGridRef.current);
       }
       
       window.removeEventListener('scroll', showElementOnScroll);
@@ -140,10 +161,7 @@ function App() {
         </article>
 
         <section className='mt-12 flex justify-center items-center flex-col'>
-          <div 
-            className='w-full flex flex-col justify-center items-center gap-4'
-            ref={stackGridRef}
-          >            
+          <div className='w-full flex flex-col justify-center items-center gap-4'>            
             {githubRepos.map(repo => (
               <div 
                 key={repo.url}
@@ -155,7 +173,7 @@ function App() {
                 <a 
                   href={repo.url}
                   target='_blank'
-                  className='w-full flex items-center justify-between'
+                  className='w-full bg-transparent flex items-center justify-between'
 
                 >
                   <div className='h-8 w-8 rounded-sm bg-light-variant' />
@@ -178,38 +196,76 @@ function App() {
               </span>
             </h2>
 
-            <div className={clsx('mt-6 grid-rows-4 grid grid-cols-4 gap-4 z-30 transition-all ease-linear delay-150 duration-150', {
-              'opacity-100': stackGridShouldAppear,
-              'opacity-0': !stackGridShouldAppear
+            <div 
+              ref={stackGridRef}
+              className={clsx('mt-6 grid-rows-4 grid grid-cols-4 gap-4 z-30 transition-all ease-linear delay-150 duration-150', {
+                'opacity-100': stackGridShouldAppear,
+                'opacity-0': !stackGridShouldAppear
             })}>
-              {stack.map(stack => (
-                <Tooltip.Provider 
-                  key={stack.name}
-                  delayDuration={0}
-                >
-                  <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                      <div className='h-9 w-9 hover:scale-110 transition-all cursor-pointer'>
-                        <img 
-                          src={stack.icon}
-                          alt={`${stack.name} logo`}
-                          className='w-full h-full'
-                        />
-                      </div>
-                    </Tooltip.Trigger>
+              {stack.map(stack => {
+                if (isMobile) {
+                  return (
+                    <Popover.Root key={stack.name}>
+                      <Popover.Trigger asChild>
+                        <div className='h-9 w-9 hover:scale-110 transition-all cursor-pointer'>
+                          <img 
+                            src={stack.icon}
+                            alt={`${stack.name} logo`}
+                            className='w-full h-full'
+                          />
+                        </div>
+                      </Popover.Trigger>
+  
+                      <Popover.Portal>
+                        <Popover.Content 
+                          className={clsx('px-7 py-1 rounded-md border z-50', {
+                            'bg-zinc-800 border-zinc-900': !isDarkMode,
+                            'bg-zinc-900 border-zinc-800': isDarkMode,
+                          })}
+                          sideOffset={10}
+                          side='top'
+                          onOpenAutoFocus={event => event.preventDefault()}
+                        >
+                          <span className='font-medium text-sm text-white'>{stack.name}</span>
+                          <Popover.Arrow className='stroke-zinc-700' />
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
+                  );
+                }
 
-                    <Tooltip.Portal>
-                      <Tooltip.Content 
-                        className='px-7 py-1 rounded-md bg-zinc-800 border border-zinc-900 z-50'
-                        sideOffset={10}
-                      >
-                        <span className='font-medium text-sm text-white'>{stack.name}</span>
-                        <Tooltip.Arrow className='stroke-zinc-700' />
-                      </Tooltip.Content>
-                    </Tooltip.Portal>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-              ))}
+                return (
+                  <Tooltip.Provider 
+                    key={stack.name}
+                    delayDuration={0}
+                  >
+                    <Tooltip.Root>
+                      <Tooltip.Trigger asChild>
+                        <div className='h-9 w-9 hover:scale-110 transition-all cursor-pointer'>
+                          <img 
+                            src={stack.icon}
+                            alt={`${stack.name} logo`}
+                            className='w-full h-full'
+                          />
+                        </div>
+                      </Tooltip.Trigger>
+
+                      <Tooltip.Portal>
+                        <Tooltip.Content 
+                          className={clsx('px-7 py-1 rounded-md border z-50', {
+                            'bg-zinc-800 border-zinc-900': !isDarkMode,
+                            'bg-zinc-900 border-zinc-800': isDarkMode,
+                          })}
+                          sideOffset={10}
+                        >
+                          <span className='font-medium text-sm text-white'>{stack.name}</span>
+                          <Tooltip.Arrow className='stroke-zinc-700' />
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
+                );
+              })}
             </div>
 
             <div 

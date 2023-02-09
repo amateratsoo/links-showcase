@@ -20,6 +20,8 @@ function App() {
   const [appThemeIsReady, setAppThemeIsReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  document.documentElement.style.backgroundColor = isDarkMode ? '#121214' : '#ffffff';
+
   const stackGridRef = useRef<HTMLDivElement | null>(null);
   const skillsProgressbarRef = useRef<HTMLDivElement | null>(null);
 
@@ -55,7 +57,7 @@ function App() {
         setFrontendSkills(0);
         setBackendSkills(0);
       }
-    });
+    }, { threshold: .5 });
 
     if (skillsProgressbarRef.current) {
       skillProgressbarObserver.observe(skillsProgressbarRef.current);
@@ -69,7 +71,7 @@ function App() {
       else {
         setStackGridShouldAppear(false);
       }
-    });
+    }, { threshold: 0.4 });
 
     if (stackGridRef.current) {
       stackGridObserver.observe(stackGridRef.current);
